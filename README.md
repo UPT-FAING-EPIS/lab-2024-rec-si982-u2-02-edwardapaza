@@ -51,6 +51,8 @@
     [default]
     region=us-east-1
     ```
+    ![image](https://github.com/user-attachments/assets/796c040b-579d-497f-b18d-84ae3e484677)
+
     5. Cerrar y volver a abrir el terminal de Powershell
   * Clonar el repositorio mediante git para tener los recursos necesarios en una ubicación que no sea del sistema.
   * Colocar su nombre en el archivo   
@@ -451,11 +453,13 @@ eb create dev-env -s -sr LabRole -ip LabInstanceProfile -db
 ```Bash
 aws rds describe-db-instances
 ```
+![image](https://github.com/user-attachments/assets/6f96032c-38c6-4ddc-b82c-ed4fcf8bd22b)
 
 10. En el terminal, ejecutar el siguiente comando para añadir el puerto de entrada a la base de datos (1521) el cual servira para la comunicación, reemplazar el valor de group-id por el valor de VpcSecurityGroupId obtenido en el paso anterior
 ```Bash
 aws ec2 authorize-security-group-ingress --group-id sg-XXXXXXXXXXXXXX --protocol tcp --port 1521 --cidr 0.0.0.0/0
 ```
+![image](https://github.com/user-attachments/assets/89d4d1e1-d260-4d04-a492-7d724b5f262c)
 
 11. En Visual Studio Code, editar el archivo appsetting.json, que se encuentra en el proyecto Financiera.WebApp, y adicionar lo siguiente despues de la apertura de la primera llave.
 ```JSON
@@ -484,6 +488,8 @@ cd Financiera.WebApp
 dotnet ef migrations add CrearFinancieraBD
 dotnet ef database update
 ```
+![image](https://github.com/user-attachments/assets/b228069b-fe1e-480c-a23d-18b26fc5cdbd)
+
 15. En el terminal, proceder a generar la interfaz del cliente con el siguiente comando:
 ```Bash
 cd Financiera.WebApp
@@ -513,6 +519,7 @@ cd ..
 ```
 eb open
 ```
+![image](https://github.com/user-attachments/assets/6cfb0b62-069f-438f-ac56-b24bab40cc1c)
 
 ---
 ## Actividades Encargadas
