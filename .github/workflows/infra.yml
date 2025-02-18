@@ -81,7 +81,7 @@ jobs:
           inframap generate main.tf --raw | dot -Tsvg > inframap_aws.svg
 
       - name: Upload Inframap
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: inframap_aws.svg
           path: infra/inframap_aws.svg
