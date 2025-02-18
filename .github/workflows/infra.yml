@@ -1,0 +1,93 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'infra/**'
+      - '.github/workflows/infra.yml'
+  workflow_dispatch:
+
+jobs:
+  Deploy-infra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.0.0
+
+      - name: Terraform Init
+        run: terraform init -chdir=infra
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan -chdir=infra
+
+      - name: Create String Output
+        id: tf-plan-string
+        run: |
+          TERRAFORM_PLAN=$(cd infra && terraform show -no-color tfplan)
+          delimiter="$(openssl rand -hex 8)"
+          echo "summary<<${delimiter}" >> $GITHUB_OUTPUT
+          echo "## Terraform Plan Output" >> $GITHUB_OUTPUT
+          echo "<details><summary>Click to expand</summary>" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo '```terraform' >> $GITHUB_OUTPUT
+          echo "$TERRAFORM_PLAN" >> $GITHUB_OUTPUT
+          echo '```' >> $GITHUB_OUTPUT
+          echo "</details>" >> $GITHUB_OUTPUT
+          echo "${delimiter}" >> $GITHUB_OUTPUT
+
+      - name: Publish Terraform Plan to Task Summary
+        env:
+          SUMMARY: ${{ steps.tf-plan-string.outputs.summary }}
+        run: |
+          echo "$SUMMARY" >> $GITHUB_STEP_SUMMARY
+
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Run Infracost
+        run: |
+          cd infra
+          infracost breakdown --path . --format html --out-file infracost-report.html
+
+      - name: Convert HTML to Markdown
+        id: html2markdown
+        uses: rknj/html2markdown@v1.1.0
+        with:
+          html-file: "infra/infracost-report.html"
+
+      - name: Upload Infracost Report
+        run: |
+          echo "## Infracost Report" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.html2markdown.outputs.markdown-content }}" >> infracost.md
+          cat infracost.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Setup Inframap
+        run: |
+          curl -L -o /tmp/inframap.tar.gz "https://github.com/cycloidio/inframap/releases/download/v0.7.0/inframap-linux-amd64.tar.gz"
+          tar -xzvf /tmp/inframap.tar.gz -C /tmp
+          mv -v /tmp/inframap-linux-amd64 /usr/local/bin/inframap
+          chmod +x /usr/local/bin/inframap
+
+      - name: Generate Inframap
+        run: |
+          cd infra
+          inframap generate main.tf --raw | dot -Tsvg > inframap_aws.svg
+
+      - name: Upload Inframap
+        uses: actions/upload-artifact@v2
+        with:
+          name: inframap_aws.svg
+          path: infra/inframap_aws.svg
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan -chdir=infra
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
